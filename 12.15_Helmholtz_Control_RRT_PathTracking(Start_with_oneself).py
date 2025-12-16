@@ -239,7 +239,7 @@ class PathTracker:
 
 def path_tracking(shared_data, path_tracker, helmholtz_control):
     while shared_data['running'] and not path_tracker.is_finished():
-        time.sleep(0.02)
+        time.sleep(0.5)
 
         current_x = shared_data['center_x']
         current_y = shared_data['center_y']
@@ -255,7 +255,7 @@ def path_tracking(shared_data, path_tracker, helmholtz_control):
             beta = np.degrees(np.pi - angle_rad)
             helmholtz_control.update_beta(beta)
 
-        print(f"当前目标点: {path_tracker.current_path_index}, 当前位置: ({current_x:.0f}, {current_y:.0f}，目标位置: ({target_x:.0f}, {target_y:.0f}，距离: {np.sqrt(dx ** 2 + dy ** 2):.1f}")
+        print(f"当前目标点: {path_tracker.current_path_index}, 当前位置: ({current_x:.0f}, {current_y:.0f})，目标位置: ({target_x:.0f}, {target_y:.0f})，距离: {np.sqrt(dx ** 2 + dy ** 2):.1f}")
 
     print("路径跟踪完成")
 
@@ -283,6 +283,7 @@ def main():
     cv2.destroyWindow("选择要追踪的物体")
 
     tracker = cv2.TrackerCSRT_create()
+    ok = tracker.init(current_frame, bbox)
 
     x, y, w, h = [int(v) for v in bbox]
     start_x = x + w // 2
@@ -326,9 +327,9 @@ def main():
         while shared_data['running']:
             screenshot = pyautogui.screenshot(region=region)
             pil_array = np.array(screenshot)
-            new_frame = cv2.cvtColor(pil_array, cv2.COLOR_RGB2BGR)
+            current_frame = cv2.cvtColor(pil_array, cv2.COLOR_RGB2BGR)
 
-            ok, bbox = tracker.update(new_frame)
+            ok, bbox = tracker.update(current_frame)
 
             if ok:
                 x, y, w, h = [int(v) for v in bbox]
@@ -338,14 +339,14 @@ def main():
                 shared_data['center_x'] = center_x
                 shared_data['center_y'] = center_y
 
-                cv2.rectangle(new_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                cv2.circle(new_frame, (center_x, center_y), 5, (0, 0, 255), -1)
+                cv2.rectangle(current_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.circle(current_frame, (center_x, center_y), 5, (0, 0, 255), -1)
                 target_x, target_y = path_tracker.get_current_target()
-                cv2.circle(new_frame, (int(target_x), int(target_y)), 8, (255, 255, 0), -1)
-                cv2.arrowedLine(new_frame, (center_x, center_y),
+                cv2.circle(current_frame, (int(target_x), int(target_y)), 8, (255, 255, 0), -1)
+                cv2.arrowedLine(current_frame, (center_x, center_y),
                                 (int(target_x), int(target_y)), (255, 0, 255), 2)
 
-            result = virtual_add(new_frame, layer)
+            result = virtual_add(current_frame, layer)
             cv2.imshow('RRT Path Planning', result)
 
             key = cv2.waitKey(1) & 0xFF
